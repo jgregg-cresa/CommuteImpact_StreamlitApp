@@ -1,6 +1,7 @@
 googlemaps
 folium
-st_folium
+folium-static
+streamlit-folium
 re
 time
 TimezoneFinder
