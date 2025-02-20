@@ -111,15 +111,6 @@ Distributed under the MIT License. See `LICENSE.txt` for details.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-## Contact
-
-Your Name - [@your_twitter](https://twitter.com/your_username) - your_email@example.com
-
-Project Link: [https://github.com/your_username/CommuteImpactAnalysis](https://github.com/your_username/CommuteImpactAnalysis)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 ## Acknowledgments
 
 * [Streamlit](https://streamlit.io/)
