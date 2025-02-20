@@ -339,7 +339,7 @@ def main():
                 API_KEY = st.secrets["google_maps"]["api_key"]
                 
                 try:
-                    zipcode_data = pd.read_csv("https://raw.githubusercontent.com/Cresa-Boston-Data-Analytics/CommuteImpact_Streamlit_App/refs/heads/main/StreamlitApp/ZIP_Code_Population_Weighted_Centroids.csv?token=GHSAT0AAAAAAC7JWHWQAV3SZAJCQGGDA5BIZ5XUXRA")
+                    zipcode_data = pd.read_csv("ZIP_Code_Population_Weighted_Centroids.csv")
                 except FileNotFoundError:
                     st.error("Missing ZIP code data file")
                     st.stop()
