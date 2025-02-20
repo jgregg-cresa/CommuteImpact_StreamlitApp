@@ -1,6 +1,6 @@
 # Commute Impact Analysis Streamlit App
 
-[![Contributors][contributors-shield]][contributors-url]
+[![Contributors][contributors-shield]][https://github.com/jgregg-cresa]
 [![Forks][forks-shield]][https://github.com/jgregg-cresa]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
