@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import googlemaps
 import folium
-from streamlit_folium import folium_static
+from streamlit_folium import st_folium
 import re
 import time
 from timezonefinder import TimezoneFinder
@@ -549,7 +549,7 @@ def main():
                 radius=7
             ).add_to(map_obj)
         
-        folium_static(map_obj, width=700, height=500)
+        st_folium(map_obj, width=700, height=500)
 
 if __name__ == "__main__":
     main()
