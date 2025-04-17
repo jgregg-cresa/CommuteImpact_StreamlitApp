@@ -86,19 +86,6 @@ Follow these steps to set up the project locally.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repo
-2. Create a new branch (`git checkout -b feature/YourFeature`)
-3. Commit your changes (`git commit -m 'Add YourFeature'`)
-4. Push to the branch (`git push origin feature/YourFeature`)
-5. Open a Pull Request
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 ## License
 
 Distributed under the MIT License. See `LICENSE.txt` for details.
