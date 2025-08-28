@@ -1,10 +1,21 @@
+# StreamlitApp.py
+
 import streamlit as st
 import pandas as pd
 import datetime
 from streamlit_folium import st_folium
 
-from utils.data_processor import process_origins, find_coordinate_columns, combine_address_fields, CommuteAnalyzer
-from utils.api_handler import geocode_addresses, get_timezone_info, calculate_distance_matrix_in_chunks
+from utils.data_processor import (
+    process_origins,
+    find_coordinate_columns,
+    combine_address_fields,
+    CommuteAnalyzer
+)
+from utils.api_handler import (
+    geocode_addresses,
+    get_timezone_info,
+    calculate_distance_matrix_in_chunks
+)
 from utils.visualization import create_commute_map
 
 def main():
@@ -19,6 +30,14 @@ def main():
         destinations_file = st.file_uploader("Upload Destinations CSV", type=['csv'])
         method_transit = st.selectbox('Transit Method', ('driving', 'transit'))
         submitted = st.form_submit_button('Run Analysis')
+        
+        max_commute_time = st.slider(
+            'Maximum Commute Time (minutes)',
+            min_value=15, 
+            max_value=120, 
+            value=60, 
+            step=5
+        )
 
     if submitted:
         try:
@@ -33,7 +52,6 @@ def main():
                     st.error("Missing ZIP code data file. Please ensure it is in the 'data' folder.")
                     st.stop()
 
-                # Process dataframes using functions from utils
                 origins = process_origins(origins)
                 origins = find_coordinate_columns(origins, zipcode_data)
                 origins = combine_address_fields(origins)
@@ -62,7 +80,6 @@ def main():
                     st.error("Missing coordinates in data")
                     st.stop()
 
-                # Get timezone info and calculate distance matrix
                 _, departure_time = get_timezone_info(origins)
                 distance_matrix = calculate_distance_matrix_in_chunks(
                     origins['Coords'].tolist(),
@@ -76,7 +93,6 @@ def main():
                     st.error("Failed to calculate distance matrix")
                     st.stop()
 
-                # Extract durations and distances
                 results = []
                 for row in distance_matrix['rows']:
                     results.append([
@@ -91,7 +107,7 @@ def main():
                     'origins': origins,
                     'destinations': destinations,
                     'durations': [[r[0] for r in row] for row in results],
-                    'distances': [[r[1] for r in row] for row in results]
+                    'distances': [[r[1] for r in row] for row in results],
                 }
 
         except Exception as e:
@@ -101,7 +117,6 @@ def main():
     if st.session_state.results:
         st.header("Analysis Results")
         
-        # Create raw results dataframe
         durations_df = pd.DataFrame(
             st.session_state.results['durations'],
             columns=[f'Duration_to_{i}' for i in range(len(st.session_state.results['destinations']))]
@@ -118,30 +133,48 @@ def main():
             distances_df
         ], axis=1)
 
-        # Process with CommuteAnalyzer
         analyzer = CommuteAnalyzer({method_transit: raw_results_df})
         processed_df = analyzer.process_commute_data()
-        final_df = analyzer.transform_for_visualization(processed_df, st.session_state.results['destinations'])
+        transformed_df = analyzer.transform_for_visualization(processed_df, st.session_state.results['destinations'])
 
-        # Show processed data
+        filtered_df, total_employees, remaining_employees = analyzer.filter_by_commute_time(
+            transformed_df, 
+            max_commute_time
+        )
+        
+        # Calculate averages for the map based on the filtered data
+        filtered_durations = filtered_df[filtered_df['variable'].str.contains('CurrentCommute_Time')]['value']
+        filtered_commute_times = pd.to_numeric(filtered_durations, errors='coerce')
+        avg_duration = filtered_commute_times.mean()
+        
+        # NOTE: Calculating average distance requires a bit more logic.
+        # Assuming for now we'll just use the same filtered group for a proxy
+        filtered_distances = filtered_df[filtered_df['variable'].str.contains('Distance')]['value']
+        avg_distance = pd.to_numeric(filtered_distances, errors='coerce').mean()
+        
+        st.subheader("Filtered Commute Data Summary")
+        st.write(f"Total employees: {total_employees}")
+        st.write(f"Employees meeting criteria: {remaining_employees}")
+        
         st.subheader("Categorized Commute Times")
-        st.dataframe(final_df.head())
+        st.dataframe(filtered_df.head())
         
         st.download_button(
             "Download Categorized Data",
-            final_df.to_csv(index=False).encode('utf-8'),
+            filtered_df.to_csv(index=False).encode('utf-8'),
             f"CommuteAnalysis_{method_transit}_{datetime.date.today().strftime('%Y%m%d')}.csv",
             "text/csv"
         )
 
-        # Show map using the visualization utility
         st.header("Map Visualization")
-        map_center = st.session_state.results['map_center'] if 'map_center' in st.session_state.results else None
+        map_center = st.session_state.results.get('map_center')
         
         map_obj = create_commute_map(
             st.session_state.results['origins'],
             st.session_state.results['destinations'],
-            map_center
+            map_center,
+            avg_duration,
+            avg_distance
         )
         st_folium(map_obj, width=700, height=500)
 
