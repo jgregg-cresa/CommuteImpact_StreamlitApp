@@ -17,7 +17,7 @@ def create_commute_map(origins_df, destinations_df, map_center=None):
         all_coords = origins_df['Coords'].tolist() + destinations_df['Coords'].tolist()
         map_center = get_map_center(all_coords)
 
-    map_obj = folium.Map(location=map_center, tiles='stadiaalidadesmooth', zoom_start=8)
+    map_obj = folium.Map(location=map_center, tiles='cartodbpositron', zoom_start=8)
     
     # Add origin markers
     for _, row in origins_df.iterrows():
