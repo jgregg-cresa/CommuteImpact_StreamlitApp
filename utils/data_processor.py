@@ -30,6 +30,33 @@ class CommuteAnalyzer:
             split_f.append([method])
             
         return CommuteData(dfs, dicty, split_f)
+
+    def filter_by_commute_time(self, df: pd.DataFrame, max_commute_time: int) -> Tuple[pd.DataFrame, int, int]:
+        """
+        Filters the DataFrame to include only employees with a current commute time
+        less than or equal to the specified maximum.
+        """
+        # Ensure 'value' column is numeric for filtering
+        df['value'] = pd.to_numeric(df['value'], errors='coerce')
+
+        # Get all unique employee IDs before filtering
+        all_employees = df['Employee_ID'].unique()
+        total_employees = len(all_employees)
+        
+        # Identify current commute times
+        current_commute_times = df[df['variable'] == 'CurrentCommute_Time']
+        
+        # Find employees whose current commute is within the max time
+        valid_employees = current_commute_times[
+            current_commute_times['value'] <= max_commute_time
+        ]['Employee_ID'].unique()
+        
+        # Filter the full DataFrame to only include data for valid employees
+        filtered_df = df[df['Employee_ID'].isin(valid_employees)].copy()
+        
+        remaining_employees = len(valid_employees)
+
+        return filtered_df, total_employees, remaining_employees
     
     @staticmethod
     def _commute_time_bucket(time: float) -> str:
