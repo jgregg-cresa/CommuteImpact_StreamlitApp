@@ -11,7 +11,7 @@ def get_map_center(coords_list):
         return [np.mean([c[0] for c in valid_coords]), np.mean([c[1] for c in valid_coords])]
     return [42.3601, -71.0589]  # Default to Boston
 
-def create_enhanced_commute_map(origins_df, destinations_df, map_center=None, style_options=None):
+def create_commute_map(origins_df, destinations_df, map_center=None, style_options=None):
     """
     Creates a visually enhanced Folium map with modern styling and interactive features.
     """
