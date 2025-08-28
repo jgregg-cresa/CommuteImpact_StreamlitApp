@@ -1,8 +1,0 @@
-streamlit
-pandas
-googlemaps
-folium
-streamlit-folium
-timezonefinder
-python-dateutil
-numpy
