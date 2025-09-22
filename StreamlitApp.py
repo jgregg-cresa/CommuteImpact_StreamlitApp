@@ -173,8 +173,8 @@ def main():
             st.session_state.results['origins'],
             st.session_state.results['destinations'],
             map_center,
-            avg_duration,
-            avg_distance
+            # avg_duration,
+            # avg_distance
         )
         st_folium(map_obj, width=700, height=500)
 
