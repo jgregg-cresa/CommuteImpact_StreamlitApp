@@ -173,6 +173,19 @@ def main():
         
         # Show filtered data stats
         st.write(f"Showing data for employees with commute times ≤ {max_commute_time} minutes")
+
+        # Interactive Dashboard Section
+        st.header("Commute Impact Dashboard")
+        st.markdown("*Interactive visualization of commute analysis results*")
+        
+        if st.checkbox("Show Dashboard Analysis", value=True):
+            try:
+                create_simplified_dashboard(filtered_df, st.session_state.results['destinations'])
+            except Exception as e:
+                st.error(f"Error creating dashboard: {str(e)}")
+                st.write("Please check your data format and try again.")
+        
+        st.divider()
         
         st.header("Map Visualization")
         map_center = st.session_state.results.get('map_center')
