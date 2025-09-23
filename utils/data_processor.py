@@ -452,4 +452,5 @@ def combine_address_fields(df, is_destination=False):
 
     df['ADDRESS_FULL'] = filter_df.apply(clean_address, axis=1)
     return df
+st.write("DEBUG - Destination Sample:", df.head()[["ADDRESS_FULL"]])
 
