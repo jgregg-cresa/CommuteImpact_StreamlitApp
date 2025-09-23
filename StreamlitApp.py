@@ -7,7 +7,7 @@ from streamlit_folium import st_folium
 
 from utils.data_processor import (
     process_origins,
-    simplified_dashboard,
+    create_simplified_dashboard,
     find_coordinate_columns,
     combine_address_fields,
     CommuteAnalyzer
