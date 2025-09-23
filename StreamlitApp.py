@@ -152,9 +152,16 @@ def main():
         filtered_distances = filtered_df[filtered_df['variable'].str.contains('Distance')]['value']
         avg_distance = pd.to_numeric(filtered_distances, errors='coerce').mean()
         
-        st.subheader("Filtered Commute Data Summary")
-        st.write(f"Total employees: {total_employees}")
-        st.write(f"Employees meeting criteria: {remaining_employees}")
+        # st.subheader("Filtered Commute Data Summary")
+        # st.write(f"Total employees: {total_employees}")
+        # st.write(f"Employees meeting criteria: {remaining_employees}")
+
+        # Display employee count stats
+        st.subheader("Employee Commute Time Filter Results")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total Employees", total_employees)
+        col2.metric("Employees Within Limit", remaining_employees)
+        col3.metric("Employees Filtered Out", total_employees - remaining_employees)
         
         st.subheader("Categorized Commute Times")
         st.dataframe(filtered_df.head())
@@ -165,7 +172,10 @@ def main():
             f"CommuteAnalysis_{method_transit}_{datetime.date.today().strftime('%Y%m%d')}.csv",
             "text/csv"
         )
-
+        
+        # Show filtered data stats
+        st.write(f"Showing data for employees with commute times ≤ {max_commute_time} minutes")
+        
         st.header("Map Visualization")
         map_center = st.session_state.results.get('map_center')
         
