@@ -372,6 +372,8 @@ def create_simplified_dashboard(filtered_df, destinations_df):
     summary_df = pd.DataFrame(summary_data)
     st.dataframe(summary_df, use_container_width=True)
 
+    st.divider()
+
 # Original Streamlit App Functions (slightly modified)
 def process_origins(df):
     """Process the origins DataFrame"""
