@@ -318,7 +318,7 @@ def create_simplified_dashboard(filtered_df, destinations_df):
             x=1
         )
     )
-    st.write("DEBUG - Chart Data Keys:", list(chart_data.keys()))
+    # st.write("DEBUG - Chart Data Keys:", list(chart_data.keys()))
 
     st.plotly_chart(fig, use_container_width=True)
    
@@ -432,20 +432,28 @@ def find_coordinate_columns(df, zipcode_data, is_destination=False):
             df['Coords'] = list(zip(df['Latitude'], df['Longitude']))
     return df
 
+# def combine_address_fields(df, is_destination=False):
+#     """Combine address fields if coordinates missing"""
+#     # Expanded regex to catch street/line variations
+#     filter_pattern = (
+#         r"(address.*|addr.*|street.*|city$|town$|state$|zip.*|postal.*)"
+#     )
+#     filter_df = df.filter(regex=re.compile(filter_pattern, re.IGNORECASE))
+
+#     def clean_address(row):
+#         parts = [str(val).strip() for val in row.dropna().astype(str)]
+#         seen = set()
+#         unique_parts = [p for p in parts if not (p in seen or seen.add(p))]
+#         return ", ".join(unique_parts)
+
+#     df['ADDRESS_FULL'] = filter_df.apply(clean_address, axis=1)
+#     return df
+
 def combine_address_fields(df, is_destination=False):
     """Combine address fields if coordinates missing"""
-    # Expanded regex to catch street/line variations
-    filter_pattern = (
-        r"(address.*|addr.*|street.*|city$|town$|state$|zip.*|postal.*)"
-    )
+    # Always create ADDRESS_FULL
+    filter_pattern = r"address.*|city$|town$|state$|zip.*|Postal*" if is_destination else r"address.*|city$|town$|state$|zip code.*|zipcode.*|zip*"
     filter_df = df.filter(regex=re.compile(filter_pattern, re.IGNORECASE))
-
-    def clean_address(row):
-        parts = [str(val).strip() for val in row.dropna().astype(str)]
-        seen = set()
-        unique_parts = [p for p in parts if not (p in seen or seen.add(p))]
-        return ", ".join(unique_parts)
-
-    df['ADDRESS_FULL'] = filter_df.apply(clean_address, axis=1)
+    df['ADDRESS_FULL'] = filter_df.apply(lambda x: ', '.join(x.dropna().astype(str)), axis=1)
     return df
 
