@@ -6,3 +6,4 @@ streamlit-folium
 timezonefinder
 python-dateutil
 numpy
+plotly
