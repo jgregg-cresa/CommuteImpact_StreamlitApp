@@ -436,26 +436,19 @@ def combine_address_fields(df, is_destination=False):
     """Combine address fields if coordinates missing"""
     filter_pattern = r"(address.*|addr.*|street.*|city$|town$|state$|zip.*|postal.*)"
     filter_df = df.filter(regex=re.compile(filter_pattern, re.IGNORECASE))
-    
-    # DEBUG: Print what columns are being matched
-    print(f"Columns matched by regex: {list(filter_df.columns)}")
-    print(f"Sample row data:")
-    if len(filter_df) > 0:
-        print(filter_df.iloc[0].to_dict())
 
     def clean_address(row):
-        parts = [str(val).strip() for val in row.dropna().astype(str)]
-        print(f"Original parts: {parts}")  # DEBUG
-        seen = set()
-        unique_parts = []
-        for p in parts:
-            if p not in seen and p != 'nan':  # Also exclude 'nan' strings
-                seen.add(p)
-                unique_parts.append(p)
-        print(f"Unique parts: {unique_parts}")  # DEBUG
-        result = ", ".join(unique_parts)
-        print(f"Final result: {result}")  # DEBUG
-        return result
+        # Get all non-null values, convert to string, and strip
+        parts = []
+        for val in row.dropna():
+            str_val = str(val).strip()
+            if str_val and str_val.lower() != 'nan':
+                parts.append(str_val)
+        
+        # Remove duplicates while preserving order using dict
+        unique_parts = list(dict.fromkeys(parts))
+        
+        return ", ".join(unique_parts)
 
     df['ADDRESS_FULL'] = filter_df.apply(clean_address, axis=1)
     return df
