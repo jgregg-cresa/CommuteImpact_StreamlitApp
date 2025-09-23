@@ -235,6 +235,248 @@ class CommuteAnalyzer:
         
         return filtered_df, len(all_employees), len(all_employees) - len(employees_to_filter)
 
+def create_simplified_dashboard(filtered_df, destinations_df):
+    """
+    Create a simplified dashboard showing commute time distributions for all locations
+    """
+    
+    # Get unique destinations for analysis
+    destinations = destinations_df['ADDRESS_FULL'].tolist()
+    
+    st.header("📊 Commute Time Analysis - All Locations")
+    
+    # Get current location data
+    current_data = filtered_df[
+        (filtered_df['variable'] == 'Current_Commute_Time_Bucket') & 
+        (filtered_df['names'] == destinations[0])
+    ].copy()
+    
+    if len(current_data) == 0:
+        st.error("No current commute data found")
+        return
+    
+    # Prepare data for the chart
+    time_buckets = ['0-15 Minutes', '15-30 Minutes', '30-45 Minutes', '45-60 Minutes', '60 Minutes +']
+    chart_data = {}
+    
+    # Current location data
+    current_location_name = destinations[0].split(',')[0] if ',' in destinations[0] else destinations[0]
+    current_buckets = current_data['value'].value_counts().reindex(time_buckets, fill_value=0)
+    chart_data[f"Current: {current_location_name}"] = current_buckets.values
+    
+    # Get all potential locations data
+    potential_locations = []
+    for dest_idx, destination in enumerate(destinations[1:], 1):
+        potential_data = filtered_df[
+            (filtered_df['variable'] == f'Potential_Commute_Time_Reduced_Bucket_{dest_idx}') & 
+            (filtered_df['names'] == destination)
+        ].copy()
+        
+        if len(potential_data) > 0:
+            potential_location_name = destination.split(',')[0] if ',' in destination else destination
+            potential_buckets = potential_data['value'].value_counts().reindex(time_buckets, fill_value=0)
+            chart_data[f"Potential: {potential_location_name}"] = potential_buckets.values
+            potential_locations.append((dest_idx, destination, potential_location_name))
+    
+    # Create the dynamic chart
+    fig = go.Figure()
+    
+    # Color palette for different locations
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+    
+    # Add bars for each location
+    for idx, (location_name, values) in enumerate(chart_data.items()):
+        fig.add_trace(go.Bar(
+            x=['0-15 Min', '15-30 Min', '30-45 Min', '45-60 Min', '60+ Min'],
+            y=values,
+            name=location_name,
+            marker_color=colors[idx % len(colors)],
+            text=values,
+            textposition='auto',
+        ))
+    
+    # Update layout
+    fig.update_layout(
+        title="Employees by Commute Time - 15 Minute Intervals (All Locations)",
+        xaxis_title="Commute Time Range",
+        yaxis_title="Number of Employees",
+        barmode='group',
+        height=500,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Summary metrics table
+    st.subheader("Location Comparison Summary")
+    
+    summary_data = []
+    
+    # Current location metrics
+    current_commute_data = filtered_df[
+        (filtered_df['variable'] == 'CurrentCommute_Time') & 
+        (filtered_df['names'] == destinations[0])
+    ]
+    current_times = pd.to_numeric(current_commute_data['value'], errors='coerce').dropna()
+    
+    summary_data.append({
+        'Location': f"Current: {current_location_name}",
+        'Total Employees': len(current_times),
+        'Average Commute (min)': f"{current_times.mean():.1f}",
+        'Employees ≤15 min': int(current_buckets['0-15 Minutes']),
+        'Employees ≤30 min': int(current_buckets['0-15 Minutes'] + current_buckets['15-30 Minutes']),
+        'Employees >60 min': int(current_buckets['60 Minutes +'])
+    })
+    
+    # Potential locations metrics
+    for dest_idx, destination, potential_location_name in potential_locations:
+        potential_commute_data = filtered_df[
+            (filtered_df['variable'] == f'Potential_Location_{dest_idx}') & 
+            (filtered_df['names'] == destination)
+        ]
+        
+        change_data = filtered_df[
+            (filtered_df['variable'] == f'Change_Commute_{dest_idx}') & 
+            (filtered_df['names'] == destination)
+        ]
+        
+        time_category_data = filtered_df[
+            (filtered_df['variable'] == f'Commute_Time_Category_Bucket_{dest_idx}') & 
+            (filtered_df['names'] == destination)
+        ]
+        
+        potential_times = pd.to_numeric(potential_commute_data['value'], errors='coerce').dropna()
+        time_changes = pd.to_numeric(change_data['value'], errors='coerce').dropna()
+        improved_employees = len(time_category_data[time_category_data['value'] == 'Time Reduced'])
+        
+        potential_buckets = chart_data[f"Potential: {potential_location_name}"]
+        
+        summary_data.append({
+            'Location': f"Potential: {potential_location_name}",
+            'Total Employees': len(potential_times),
+            'Average Commute (min)': f"{potential_times.mean():.1f}",
+            'Employees ≤15 min': int(potential_buckets[0]),
+            'Employees ≤30 min': int(potential_buckets[0] + potential_buckets[1]),
+            'Employees >60 min': int(potential_buckets[4]),
+            'Avg Impact (min)': f"{time_changes.mean():.1f}",
+            'Employees Improved': improved_employees
+        })
+    
+    # Display summary table
+    summary_df = pd.DataFrame(summary_data)
+    st.dataframe(summary_df, use_container_width=True)
+    
+    # Export to PDF button
+    if st.button("📄 Export Chart Analysis to PDF"):
+        try:
+            with st.spinner("Generating PDF report..."):
+                pdf_content = create_chart_pdf_report(chart_data, summary_df, destinations)
+                
+                filename = f"Commute_Chart_Analysis_{datetime.date.today().strftime('%Y%m%d')}.pdf"
+                
+                st.download_button(
+                    label="📥 Download PDF Report",
+                    data=pdf_content,
+                    file_name=filename,
+                    mime="application/pdf",
+                    key="download_chart_pdf"
+                )
+                st.success("PDF report generated successfully!")
+                
+        except Exception as e:
+            st.error(f"Error generating PDF: {str(e)}")
+            st.write("Make sure you have reportlab installed: `pip install reportlab`")
+
+def create_chart_pdf_report(chart_data, summary_df, destinations):
+    """
+    Create a simplified PDF report focusing on the chart data
+    """
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.units import inch
+    import io
+    from datetime import datetime
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch)
+    
+    # Get styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=30,
+        textColor=colors.HexColor('#1f77b4')
+    )
+    
+    # Build content
+    content = []
+    
+    # Title
+    content.append(Paragraph("Commute Time Analysis - All Locations", title_style))
+    content.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}", styles['Normal']))
+    content.append(Spacer(1, 20))
+    
+    # Chart data table
+    content.append(Paragraph("Employee Distribution by Commute Time (15-Minute Intervals)", styles['Heading2']))
+    content.append(Spacer(1, 12))
+    
+    # Create chart data table
+    time_ranges = ['0-15 Min', '15-30 Min', '30-45 Min', '45-60 Min', '60+ Min']
+    chart_table_data = [['Location'] + time_ranges]
+    
+    for location, values in chart_data.items():
+        row = [location] + [str(int(val)) for val in values]
+        chart_table_data.append(row)
+    
+    chart_table = Table(chart_table_data, colWidths=[2.5*inch] + [1*inch]*5)
+    chart_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    content.append(chart_table)
+    content.append(Spacer(1, 30))
+    
+    # Summary metrics table
+    content.append(Paragraph("Location Comparison Summary", styles['Heading2']))
+    content.append(Spacer(1, 12))
+    
+    # Convert summary dataframe to table format
+    summary_table_data = [summary_df.columns.tolist()]
+    for _, row in summary_df.iterrows():
+        summary_table_data.append(row.tolist())
+    
+    summary_table = Table(summary_table_data, colWidths=[1.8*inch] + [0.8*inch]*7)
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('FONTSIZE', (0, 1), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    content.append(summary_table)
+
 # Original Streamlit App Functions (slightly modified)
 def process_origins(df):
     """Process the origins DataFrame"""
