@@ -449,6 +449,7 @@ def combine_address_fields(df, is_destination=False):
         # Remove duplicates while keeping order
         seen = set()
         unique_parts = [p for p in parts if not (p in seen or seen.add(p))]
+        st.write("DEBUG - Address Columns Used:", filter_df.columns.tolist())
         return ", ".join(unique_parts)
     
     df['ADDRESS_FULL'] = filter_df.apply(clean_address, axis=1)
