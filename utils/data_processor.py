@@ -287,7 +287,7 @@ def create_simplified_dashboard(filtered_df, destinations_df):
             (filtered_df['names'] == destination)
         ].copy()
     
-        potential_location_name = destination.split(',')[0] if ',' in destination else destination
+        potential_location_name = destination.split(',') if ',' in destination else destination
         
         if len(potential_data) > 0:
             potential_buckets = potential_data['value'].value_counts().reindex(time_buckets, fill_value=0)
