@@ -443,13 +443,12 @@ def combine_address_fields(df, is_destination=False):
         else r"address.*|city$|town$|state$|zip code.*|zipcode.*|zip*"
     )
     filter_df = df.filter(regex=re.compile(filter_pattern, re.IGNORECASE))
-    
+    st.write("DEBUG - Address Columns Used:", filter_df.columns.tolist())
     def clean_address(row):
         parts = [str(val).strip() for val in row.dropna().astype(str)]
         # Remove duplicates while keeping order
         seen = set()
         unique_parts = [p for p in parts if not (p in seen or seen.add(p))]
-        st.write("DEBUG - Address Columns Used:", filter_df.columns.tolist())
         return ", ".join(unique_parts)
     
     df['ADDRESS_FULL'] = filter_df.apply(clean_address, axis=1)
