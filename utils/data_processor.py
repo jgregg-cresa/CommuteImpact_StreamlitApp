@@ -246,7 +246,7 @@ def create_simplified_dashboard(filtered_df, destinations_df):
     # Get unique destinations for analysis
     destinations = destinations_df['ADDRESS_FULL'].tolist()
     
-    st.header("📊 Commute Time Analysis - All Locations")
+    st.header("Commute Time Analysis - All Locations")
     
     # Get current location data
     current_data = filtered_df[
@@ -269,17 +269,34 @@ def create_simplified_dashboard(filtered_df, destinations_df):
     
     # Get all potential locations data
     potential_locations = []
+    # for dest_idx, destination in enumerate(destinations[1:], 1):
+    #     potential_data = filtered_df[
+    #         (filtered_df['variable'] == f'Potential_Commute_Time_Reduced_Bucket_{dest_idx}') & 
+    #         (filtered_df['names'] == destination)
+    #     ].copy()
+        
+    #     if len(potential_data) > 0:
+    #         potential_location_name = destination.split(',')[0] if ',' in destination else destination
+    #         potential_buckets = potential_data['value'].value_counts().reindex(time_buckets, fill_value=0)
+    #         chart_data[f"Potential: {potential_location_name}"] = potential_buckets.values
+    #         potential_locations.append((dest_idx, destination, potential_location_name))
+
     for dest_idx, destination in enumerate(destinations[1:], 1):
         potential_data = filtered_df[
             (filtered_df['variable'] == f'Potential_Commute_Time_Reduced_Bucket_{dest_idx}') & 
             (filtered_df['names'] == destination)
         ].copy()
+    
+        potential_location_name = destination.split(',')[0] if ',' in destination else destination
         
         if len(potential_data) > 0:
-            potential_location_name = destination.split(',')[0] if ',' in destination else destination
             potential_buckets = potential_data['value'].value_counts().reindex(time_buckets, fill_value=0)
-            chart_data[f"Potential: {potential_location_name}"] = potential_buckets.values
-            potential_locations.append((dest_idx, destination, potential_location_name))
+        else:
+            # Ensure the location still shows up in the chart with zero values
+            potential_buckets = pd.Series([0] * len(time_buckets), index=time_buckets)
+    
+        chart_data[f"Potential: {potential_location_name}"] = potential_buckets.values
+        potential_locations.append((dest_idx, destination, potential_location_name))
     
     # Create the dynamic chart
     fig = go.Figure()
