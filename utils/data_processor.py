@@ -318,7 +318,7 @@ def create_simplified_dashboard(filtered_df, destinations_df):
             x=1
         )
     )
-    st.write("DEBUG - Chart Data Keys:", list(chart_data.keys()))
+    # st.write("DEBUG - Chart Data Keys:", list(chart_data.keys()))
 
     st.plotly_chart(fig, use_container_width=True)
    
@@ -451,6 +451,5 @@ def combine_address_fields(df, is_destination=False):
         return ", ".join(unique_parts)
 
     df['ADDRESS_FULL'] = filter_df.apply(clean_address, axis=1)
-    st.write("DEBUG - Destination Sample:", df.head()[["ADDRESS_FULL"]])
     return df
 
