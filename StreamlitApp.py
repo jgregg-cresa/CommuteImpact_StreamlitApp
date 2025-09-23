@@ -29,15 +29,13 @@ def main():
         origins_file = st.file_uploader("Upload Origins CSV", type=['csv'])
         destinations_file = st.file_uploader("Upload Destinations CSV", type=['csv'])
         method_transit = st.selectbox('Transit Method', ('driving', 'transit'))
-        submitted = st.form_submit_button('Run Analysis')
         
-        max_commute_time = st.slider(
-            'Maximum Commute Time (minutes)',
-            min_value=30, 
-            max_value=240, 
-            value=120, 
-            step=15
-        )
+        max_commute_time = st.slider('Maximum Commute Time (minutes)',
+                                     min_value=30,
+                                     max_value=240,
+                                     value=120,
+                                     step=15)
+        submitted = st.form_submit_button('Run Analysis')
 
     if submitted:
         try:
