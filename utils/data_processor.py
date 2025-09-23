@@ -262,34 +262,34 @@ def create_simplified_dashboard(filtered_df, destinations_df):
     time_buckets = ['0-15 Minutes', '15-30 Minutes', '30-45 Minutes', '45-60 Minutes', '60 Minutes +']
     chart_data = {}
    
-    # Current location data: Get the full name directly from the filtered data
-    current_location_name = current_data['names'].iloc[0] if not current_data.empty else destinations[0]
+    # Current location data
+    current_location_name = destinations[0].split(',')[0] if ',' in destinations[0] else destinations[0]
     current_buckets = current_data['value'].value_counts().reindex(time_buckets, fill_value=0)
     chart_data[f"Current: {current_location_name}"] = current_buckets.values
    
     # Get all potential locations data
     potential_locations = []
-    # Use a set to get unique names to avoid processing duplicates
-    potential_names = filtered_df[filtered_df['variable'].str.startswith('Potential_Commute')]['names'].unique()
-    
-    # Iterate over the unique potential names found in the filtered_df
-    for potential_location_name in potential_names:
+    for dest_idx, destination in enumerate(destinations[1:], 1):
         potential_data = filtered_df[
-            (filtered_df['variable'].str.contains('Potential_Commute_Time_Reduced_Bucket_')) & 
-            (filtered_df['names'] == potential_location_name)
+            (filtered_df['variable'] == f'Potential_Commute_Time_Reduced_Bucket_{dest_idx}') & 
+            (filtered_df['names'] == destination)
         ].copy()
    
+        potential_location_name = destination.split(',')[0] if ',' in destination else destination
+       
         if len(potential_data) > 0:
             potential_buckets = potential_data['value'].value_counts().reindex(time_buckets, fill_value=0)
         else:
+            # Ensure the location still shows up in the chart with zero values
             potential_buckets = pd.Series([0] * len(time_buckets), index=time_buckets)
    
         chart_data[f"Potential: {potential_location_name}"] = potential_buckets.values
-        potential_locations.append((None, potential_location_name, potential_location_name))
+        potential_locations.append((dest_idx, destination, potential_location_name))
    
     # Create the dynamic chart
     fig = go.Figure()
    
+    # Color palette for different locations
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
    
     # Add bars for each location
@@ -318,7 +318,7 @@ def create_simplified_dashboard(filtered_df, destinations_df):
             x=1
         )
     )
-    # st.write("DEBUG - Chart Data Keys:", list(chart_data.keys()))
+    st.write("DEBUG - Chart Data Keys:", list(chart_data.keys()))
 
     st.plotly_chart(fig, use_container_width=True)
    
@@ -344,24 +344,20 @@ def create_simplified_dashboard(filtered_df, destinations_df):
     })
    
     # Potential locations metrics
-    for potential_location_name in potential_names:
-        matching_destination = next((d for d in destinations if d == potential_location_name), None)
-        if matching_destination is None:
-            continue
-
+    for dest_idx, destination, potential_location_name in potential_locations:
         potential_commute_data = filtered_df[
-            (filtered_df['variable'].str.startswith('Potential_Location_')) & 
-            (filtered_df['names'] == potential_location_name)
+            (filtered_df['variable'] == f'Potential_Location_{dest_idx}') & 
+            (filtered_df['names'] == destination)
         ]
        
         change_data = filtered_df[
-            (filtered_df['variable'].str.startswith('Change_Commute_')) & 
-            (filtered_df['names'] == potential_location_name)
+            (filtered_df['variable'] == f'Change_Commute_{dest_idx}') & 
+            (filtered_df['names'] == destination)
         ]
        
         time_category_data = filtered_df[
-            (filtered_df['variable'].str.startswith('Commute_Time_Category_Bucket_')) & 
-            (filtered_df['names'] == potential_location_name)
+            (filtered_df['variable'] == f'Commute_Time_Category_Bucket_{dest_idx}') & 
+            (filtered_df['names'] == destination)
         ]
        
         potential_times = pd.to_numeric(potential_commute_data['value'], errors='coerce').dropna()
