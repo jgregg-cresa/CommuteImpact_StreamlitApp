@@ -33,10 +33,10 @@ def main():
         
         max_commute_time = st.slider(
             'Maximum Commute Time (minutes)',
-            min_value=15, 
-            max_value=120, 
-            value=60, 
-            step=5
+            min_value=30, 
+            max_value=240, 
+            value=120, 
+            step=15
         )
 
     if submitted:
