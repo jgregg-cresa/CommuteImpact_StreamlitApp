@@ -330,7 +330,8 @@ def create_simplified_dashboard(filtered_df, destinations_df):
             x=1
         )
     )
-    
+    st.write("DEBUG - Chart Data Keys:", list(chart_data.keys()))
+
     st.plotly_chart(fig, use_container_width=True)
     
     # Summary metrics table
