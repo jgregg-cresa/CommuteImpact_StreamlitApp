@@ -262,8 +262,8 @@ def create_simplified_dashboard(filtered_df, destinations_df):
     time_buckets = ['0-15 Minutes', '15-30 Minutes', '30-45 Minutes', '45-60 Minutes', '60 Minutes +']
     chart_data = {}
    
-    # Current location data
-    current_location_name = destinations[0].split(',')[0]
+    # Current location data: Use the full address directly.
+    current_location_name = destinations[0]
     current_buckets = current_data['value'].value_counts().reindex(time_buckets, fill_value=0)
     chart_data[f"Current: {current_location_name}"] = current_buckets.values
    
@@ -275,7 +275,8 @@ def create_simplified_dashboard(filtered_df, destinations_df):
             (filtered_df['names'] == destination)
         ].copy()
    
-        potential_location_name = destination.split(',')[0]
+        # Use the full address from 'destination'
+        potential_location_name = destination
        
         if len(potential_data) > 0:
             potential_buckets = potential_data['value'].value_counts().reindex(time_buckets, fill_value=0)
