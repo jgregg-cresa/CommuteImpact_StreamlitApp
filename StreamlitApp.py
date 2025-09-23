@@ -180,7 +180,7 @@ def main():
         
         if st.checkbox("Show Dashboard Analysis", value=True):
             try:
-                create_commute_dashboard(filtered_df, st.session_state.results['destinations'])
+                create_simplified_dashboard(filtered_df, st.session_state.results['destinations'])
             except Exception as e:
                 st.error(f"Error creating dashboard: {str(e)}")
                 st.write("Please check your data format and try again.")
