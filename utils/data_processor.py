@@ -4,6 +4,9 @@ import pandas as pd
 import re
 from dataclasses import dataclass
 from typing import List, Dict, Tuple
+import plotly.graph_objects as go
+import plotly.express as px
+from plotly.subplots import make_subplots
 
 @dataclass
 class CommuteData:
