@@ -438,38 +438,18 @@ def find_coordinate_columns(df, zipcode_data, is_destination=False):
 
 def combine_address_fields(df, is_destination=False):
     """Combine address fields if coordinates missing"""
-    # normalize column names
-    cols = {c.lower(): c for c in df.columns}
+    # Expanded regex to catch street/line variations
+    filter_pattern = (
+        r"(address.*|addr.*|street.*|city$|town$|state$|zip.*|postal.*)"
+    )
+    filter_df = df.filter(regex=re.compile(filter_pattern, re.IGNORECASE))
 
-    # Try to pull from known fields
-    addr_parts = []
-    if "address" in cols:
-        addr_parts.append(df[cols["address"]].astype(str))
-    elif "address1" in cols:
-        addr_parts.append(df[cols["address1"]].astype(str))
-    if "city" in cols:
-        addr_parts.append(df[cols["city"]].astype(str))
-    if "state" in cols:
-        addr_parts.append(df[cols["state"]].astype(str))
-    if "zip" in cols:
-        addr_parts.append(df[cols["zip"]].astype(str))
-    elif "zipcode" in cols:
-        addr_parts.append(df[cols["zipcode"]].astype(str))
+    def clean_address(row):
+        parts = [str(val).strip() for val in row.dropna().astype(str)]
+        seen = set()
+        unique_parts = [p for p in parts if not (p in seen or seen.add(p))]
+        return ", ".join(unique_parts)
 
-    if addr_parts:
-        df["ADDRESS_FULL"] = (
-            pd.concat(addr_parts, axis=1)
-            .apply(lambda row: ", ".join([p for p in row if p and p != "nan"]), axis=1)
-        )
-    else:
-        # fallback to original regex logic if nothing matched
-        filter_pattern = (
-            r"address.*|city$|town$|state$|zip.*|Postal*" if is_destination
-            else r"address.*|city$|town$|state$|zip code.*|zipcode.*|zip*"
-        )
-        filter_df = df.filter(regex=re.compile(filter_pattern, re.IGNORECASE))
-        df["ADDRESS_FULL"] = filter_df.apply(
-            lambda x: ", ".join(x.dropna().astype(str).unique()), axis=1
-        )
-
+    df['ADDRESS_FULL'] = filter_df.apply(clean_address, axis=1)
     return df
+
