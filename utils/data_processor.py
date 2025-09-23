@@ -244,7 +244,6 @@ def create_simplified_dashboard(filtered_df, destinations_df):
     """
    
     # Get unique destinations for analysis
-    # This list is used for filtering but the 'names' column in filtered_df is the source of truth for display
     destinations = destinations_df['ADDRESS_FULL'].tolist()
    
     st.header("Commute Time Analysis - All Locations")
@@ -264,7 +263,6 @@ def create_simplified_dashboard(filtered_df, destinations_df):
     chart_data = {}
    
     # Current location data: Get the full name directly from the filtered data
-    # Use .iloc[0] to get the first (and only) unique name from the filtered data
     current_location_name = current_data['names'].iloc[0] if not current_data.empty else destinations[0]
     current_buckets = current_data['value'].value_counts().reindex(time_buckets, fill_value=0)
     chart_data[f"Current: {current_location_name}"] = current_buckets.values
@@ -284,17 +282,14 @@ def create_simplified_dashboard(filtered_df, destinations_df):
         if len(potential_data) > 0:
             potential_buckets = potential_data['value'].value_counts().reindex(time_buckets, fill_value=0)
         else:
-            # Ensure the location still shows up in the chart with zero values
             potential_buckets = pd.Series([0] * len(time_buckets), index=time_buckets)
    
         chart_data[f"Potential: {potential_location_name}"] = potential_buckets.values
-        # Append the location details for the summary table later
         potential_locations.append((None, potential_location_name, potential_location_name))
    
     # Create the dynamic chart
     fig = go.Figure()
    
-    # Color palette for different locations
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
    
     # Add bars for each location
@@ -349,10 +344,7 @@ def create_simplified_dashboard(filtered_df, destinations_df):
     })
    
     # Potential locations metrics
-    # Re-structure the loop to use the unique potential names found earlier
     for potential_location_name in potential_names:
-        
-        # Get the corresponding destination from the original list
         matching_destination = next((d for d in destinations if d == potential_location_name), None)
         if matching_destination is None:
             continue
