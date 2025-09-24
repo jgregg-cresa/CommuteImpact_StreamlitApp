@@ -1,5 +1,3 @@
-# StreamlitApp.py
-
 import streamlit as st
 import pandas as pd
 import datetime
@@ -29,7 +27,7 @@ def main():
         st.header("Input Parameters")
         origins_file = st.file_uploader("Upload Origins CSV", type=['csv'])
         destinations_file = st.file_uploader("Upload Destinations CSV", type=['csv'])
-        method_transit = st.selectbox('Transit Method', ('driving', 'transit'))
+        method_transit = st.selectbox('Transit Method', ('driving', 'transit', 'both'))
         
         max_commute_time = st.slider('Maximum Commute Time (minutes)',
                                      min_value=30,
@@ -80,33 +78,58 @@ def main():
                     st.stop()
 
                 _, departure_time = get_timezone_info(origins)
-                distance_matrix = calculate_distance_matrix_in_chunks(
-                    origins['Coords'].tolist(),
-                    destinations['Coords'].tolist(),
-                    method_transit,
-                    departure_time,
-                    API_KEY
-                )
 
-                if distance_matrix is None:
-                    st.error("Failed to calculate distance matrix")
-                    st.stop()
+                methods_to_run = [method_transit] if method_transit != "both" else ["driving", "transit"]
+                all_results = []
 
-                results = []
-                for row in distance_matrix['rows']:
-                    results.append([
-                        (
-                            element['duration']['value'] / 60,
-                            element['distance']['value'] * 0.000621371
-                        ) if element['status'] == 'OK' else (0, 0)
-                        for element in row['elements']
-                    ])
+                for m in methods_to_run:
+                    distance_matrix = calculate_distance_matrix_in_chunks(
+                        origins['Coords'].tolist(),
+                        destinations['Coords'].tolist(),
+                        m,
+                        departure_time,
+                        API_KEY
+                    )
+
+                    if distance_matrix is None:
+                        st.error(f"Failed to calculate distance matrix for {m}")
+                        st.stop()
+
+                    results = []
+                    for row in distance_matrix['rows']:
+                        results.append([
+                            (
+                                element['duration']['value'] / 60,
+                                element['distance']['value'] * 0.000621371
+                            ) if element['status'] == 'OK' else (0, 0)
+                            for element in row['elements']
+                        ])
+
+                    durations_df = pd.DataFrame(
+                        [[r[0] for r in row] for row in results],
+                        columns=[f'Duration_to_{i}' for i in range(len(destinations))]
+                    )
+
+                    distances_df = pd.DataFrame(
+                        [[r[1] for r in row] for row in results],
+                        columns=[f'Distance_to_{i+1}' for i in range(len(destinations))]
+                    )
+
+                    raw_results_df = pd.concat([
+                        origins.reset_index(drop=True),
+                        durations_df,
+                        distances_df
+                    ], axis=1)
+
+                    raw_results_df["TransitMode"] = m
+                    all_results.append(raw_results_df)
+
+                combined_results = pd.concat(all_results, ignore_index=True)
 
                 st.session_state.results = {
                     'origins': origins,
                     'destinations': destinations,
-                    'durations': [[r[0] for r in row] for row in results],
-                    'distances': [[r[1] for r in row] for row in results],
+                    'data': combined_results
                 }
 
         except Exception as e:
@@ -116,23 +139,7 @@ def main():
     if st.session_state.results:
         st.header("Analysis Results")
         
-        durations_df = pd.DataFrame(
-            st.session_state.results['durations'],
-            columns=[f'Duration_to_{i}' for i in range(len(st.session_state.results['destinations']))]
-        )
-        
-        distances_df = pd.DataFrame(
-            st.session_state.results['distances'],
-            columns=[f'Distance_to_{i+1}' for i in range(len(st.session_state.results['destinations']))]
-        )
-        
-        raw_results_df = pd.concat([
-            st.session_state.results['origins'].reset_index(drop=True),
-            durations_df,
-            distances_df
-        ], axis=1)
-
-        analyzer = CommuteAnalyzer({method_transit: raw_results_df})
+        analyzer = CommuteAnalyzer({"all_modes": st.session_state.results['data']})
         processed_df = analyzer.process_commute_data()
         transformed_df = analyzer.transform_for_visualization(processed_df, st.session_state.results['destinations'])
 
@@ -140,22 +147,14 @@ def main():
             transformed_df, 
             max_commute_time
         )
-        
-        # Calculate averages for the map based on the filtered data
+
         filtered_durations = filtered_df[filtered_df['variable'].str.contains('CurrentCommute_Time')]['value']
         filtered_commute_times = pd.to_numeric(filtered_durations, errors='coerce')
         avg_duration = filtered_commute_times.mean()
         
-        # NOTE: Calculating average distance requires a bit more logic.
-        # Assuming for now we'll just use the same filtered group for a proxy
         filtered_distances = filtered_df[filtered_df['variable'].str.contains('Distance')]['value']
         avg_distance = pd.to_numeric(filtered_distances, errors='coerce').mean()
-        
-        # st.subheader("Filtered Commute Data Summary")
-        # st.write(f"Total employees: {total_employees}")
-        # st.write(f"Employees meeting criteria: {remaining_employees}")
 
-        # Display employee count stats
         st.subheader("Employee Commute Time Filter Results")
         col1, col2, col3 = st.columns(3)
         col1.metric("Total Employees", total_employees)
@@ -167,15 +166,13 @@ def main():
         
         st.download_button(
             "Download Categorized Data",
-            filtered_df.to_csv(index=False, ).encode('utf-8'),
+            filtered_df.to_csv(index=False).encode('utf-8'),
             f"CommuteAnalysis_{method_transit}_{datetime.date.today().strftime('%Y%m%d')}.csv",
             "text/csv"
         )
 
-        # Show filtered data stats
         st.write(f"Showing data for employees with commute times ≤ {max_commute_time} minutes")
 
-        # Interactive Dashboard Section
         st.header("Commute Impact Dashboard")
         st.markdown("*Interactive visualization of commute analysis results*")
         
