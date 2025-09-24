@@ -167,11 +167,11 @@ def main():
         
         st.download_button(
             "Download Categorized Data",
-            filtered_df.to_csv(index=False).encode('utf-8'),
+            filtered_df.to_csv(index=False, header=False).encode('utf-8'),
             f"CommuteAnalysis_{method_transit}_{datetime.date.today().strftime('%Y%m%d')}.csv",
             "text/csv"
         )
-        
+
         # Show filtered data stats
         st.write(f"Showing data for employees with commute times ≤ {max_commute_time} minutes")
 
