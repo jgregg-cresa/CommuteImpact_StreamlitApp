@@ -140,11 +140,13 @@ def main():
         st.header("Analysis Results")
         
         # Pass the combined data with TransitMode column to the analyzer
-        analyzer = CommuteAnalyzer({"all_modes": st.session_state.results['data']})
+        # The analyzer should use the TransitMode column values, not the dictionary key
+        analyzer = CommuteAnalyzer({"combined_data": st.session_state.results['data']})
         processed_df = analyzer.process_commute_data()
         transformed_df = analyzer.transform_for_visualization(processed_df, st.session_state.results['destinations'])
 
-        filtered_df, total_employees, remaining_employees = analyzer.filter_by_commute_time(
+        # Use method-specific filtering
+        filtered_df, method_results = analyzer.filter_by_commute_time_method_specific(
             transformed_df, 
             max_commute_time
         )
@@ -156,11 +158,16 @@ def main():
         filtered_distances = filtered_df[filtered_df['variable'].str.contains('Distance')]['value']
         avg_distance = pd.to_numeric(filtered_distances, errors='coerce').mean()
 
-        st.subheader("Employee Commute Time Filter Results")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Employees", total_employees)
-        col2.metric("Employees Within Limit", remaining_employees)
-        col3.metric("Employees Filtered Out", total_employees - remaining_employees)
+        st.subheader("Employee Commute Time Filter Results by Method")
+        
+        # Display results for each method
+        for method, results in method_results.items():
+            st.write(f"**{method.upper()} Method:**")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Total Employees", results['total_employees'])
+            col2.metric("Employees Within Limit", results['remaining_employees'])
+            col3.metric("Employees Filtered Out", results['filtered_out'])
+            st.write("---")
         
         st.subheader("Categorized Commute Times")
         st.dataframe(filtered_df.head())
