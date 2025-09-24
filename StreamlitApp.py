@@ -126,16 +126,11 @@ def main():
 
                 combined_results = pd.concat(all_results, ignore_index=True)
                 
-                # Build durations/distances for backward compatibility
-                durations = [[r[0] for r in row] for row in results]
-                distances = [[r[1] for r in row] for row in results]
-                
                 st.session_state.results = {
                     'origins': origins,
                     'destinations': destinations,
-                    'data': combined_results,
-                    'durations': durations,
-                    'distances': distances
+                    'combined_data': combined_results,  # Changed key name for clarity
+                    'method_transit': method_transit  # Store the selected method
                 }
 
         except Exception as e:
@@ -145,7 +140,8 @@ def main():
     if st.session_state.results:
         st.header("Analysis Results")
         
-        analyzer = CommuteAnalyzer({"all_modes": st.session_state.results['data']})
+        # Pass the combined data with TransitMode column to the analyzer
+        analyzer = CommuteAnalyzer({"combined_modes": st.session_state.results['combined_data']})
         processed_df = analyzer.process_commute_data()
         transformed_df = analyzer.transform_for_visualization(processed_df, st.session_state.results['destinations'])
 
@@ -170,10 +166,12 @@ def main():
         st.subheader("Categorized Commute Times")
         st.dataframe(filtered_df.head())
         
+        # Include the method in the filename for clarity
+        method_suffix = st.session_state.results['method_transit']
         st.download_button(
             "Download Categorized Data",
             filtered_df.to_csv(index=False).encode('utf-8'),
-            f"CommuteAnalysis_{method_transit}_{datetime.date.today().strftime('%Y%m%d')}.csv",
+            f"CommuteAnalysis_{method_suffix}_{datetime.date.today().strftime('%Y%m%d')}.csv",
             "text/csv"
         )
 
