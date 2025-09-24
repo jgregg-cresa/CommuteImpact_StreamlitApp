@@ -98,7 +98,7 @@ def main():
                         (
                             element['duration']['value'] / 60,
                             element['distance']['value'] * 0.000621371
-                        ) if element['status'] == 'OK' else (None, None)
+                        ) if element['status'] == 'OK' else (0, 0)
                         for element in row['elements']
                     ])
 
