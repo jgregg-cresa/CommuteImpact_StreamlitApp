@@ -146,7 +146,7 @@ def main():
         transformed_df = analyzer.transform_for_visualization(processed_df, st.session_state.results['destinations'])
 
         # Use method-specific filtering
-        filtered_df, method_results = analyzer.filter_by_commute_time_method_specific(
+        filtered_df, method_results = analyzer.filter_by_commute_time(
             transformed_df, 
             max_commute_time
         )
