@@ -129,7 +129,7 @@ def main():
                 st.session_state.results = {
                     'origins': origins,
                     'destinations': destinations,
-                    'combined_data': combined_results,  # Changed key name for clarity
+                    'data': combined_results,  # Keep original key name
                     'method_transit': method_transit  # Store the selected method
                 }
 
@@ -141,7 +141,7 @@ def main():
         st.header("Analysis Results")
         
         # Pass the combined data with TransitMode column to the analyzer
-        analyzer = CommuteAnalyzer({"combined_modes": st.session_state.results['combined_data']})
+        analyzer = CommuteAnalyzer({"all_modes": st.session_state.results['data']})
         processed_df = analyzer.process_commute_data()
         transformed_df = analyzer.transform_for_visualization(processed_df, st.session_state.results['destinations'])
 
