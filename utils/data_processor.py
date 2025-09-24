@@ -18,8 +18,8 @@ class CommuteData:
 class CommuteAnalyzer:
     """Class to handle commute data analysis and transformation"""
     
-    def __init__(self, data_dict: Dict[str, pd.DataFrame]):
-        self.commute_data = self._structure_data(data_dict)
+    # def __init__(self, data_dict: Dict[str, pd.DataFrame]):
+    #     self.commute_data = self._structure_data(data_dict)
         
     # def _structure_data(self, data_dict: Dict[str, pd.DataFrame]) -> CommuteData:
     #     """Structure in-memory data into CommuteData format"""
@@ -45,6 +45,10 @@ class CommuteAnalyzer:
             
     #     return CommuteData(dfs, dicty, split_f)
 
+    def __init__(self, data_dict: Dict[str, pd.DataFrame]):
+    # Store a single, unified DataFrame for all analyses
+    self.data = self._unify_data(data_dict)
+    
     def _unify_data(self, data_dict: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         """
         Consolidate multiple DataFrames into a single long-form DataFrame.
