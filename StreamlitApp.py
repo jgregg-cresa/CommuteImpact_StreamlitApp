@@ -125,11 +125,17 @@ def main():
                     all_results.append(raw_results_df)
 
                 combined_results = pd.concat(all_results, ignore_index=True)
-
+                
+                # Build durations/distances for backward compatibility
+                durations = [[r[0] for r in row] for row in results]
+                distances = [[r[1] for r in row] for row in results]
+                
                 st.session_state.results = {
                     'origins': origins,
                     'destinations': destinations,
-                    'data': combined_results
+                    'data': combined_results,
+                    'durations': durations,
+                    'distances': distances
                 }
 
         except Exception as e:
