@@ -28,9 +28,20 @@ class CommuteAnalyzer:
         dicty = {}
         
         for method, df in data_dict.items():
-            dfs.append(df)
-            dicty[method] = df
-            split_f.append([method])
+            # Check if this is combined data with TransitMode column
+            if 'TransitMode' in df.columns:
+                # Split by actual transit modes instead of using the key
+                unique_modes = df['TransitMode'].unique()
+                for mode in unique_modes:
+                    mode_df = df[df['TransitMode'] == mode].copy()
+                    dfs.append(mode_df)
+                    dicty[mode] = mode_df
+                    split_f.append([mode])
+            else:
+                # Original behavior for backward compatibility
+                dfs.append(df)
+                dicty[method] = df
+                split_f.append([method])
             
         return CommuteData(dfs, dicty, split_f)
 
