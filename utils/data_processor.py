@@ -21,56 +21,125 @@ class CommuteAnalyzer:
     def __init__(self, data_dict: Dict[str, pd.DataFrame]):
         self.commute_data = self._structure_data(data_dict)
         
-    def _structure_data(self, data_dict: Dict[str, pd.DataFrame]) -> CommuteData:
-        """Structure in-memory data into CommuteData format"""
-        dfs = []
-        split_f = []
-        dicty = {}
+    # def _structure_data(self, data_dict: Dict[str, pd.DataFrame]) -> CommuteData:
+    #     """Structure in-memory data into CommuteData format"""
+    #     dfs = []
+    #     split_f = []
+    #     dicty = {}
         
-        for method, df in data_dict.items():
-            # Check if this is combined data with TransitMode column
-            if 'TransitMode' in df.columns:
-                # Split by actual transit modes instead of using the key
-                unique_modes = df['TransitMode'].unique()
-                for mode in unique_modes:
-                    mode_df = df[df['TransitMode'] == mode].copy()
-                    dfs.append(mode_df)
-                    dicty[mode] = mode_df
-                    split_f.append([mode])
-            else:
-                # Original behavior for backward compatibility
-                dfs.append(df)
-                dicty[method] = df
-                split_f.append([method])
+    #     for method, df in data_dict.items():
+    #         # Check if this is combined data with TransitMode column
+    #         if 'TransitMode' in df.columns:
+    #             # Split by actual transit modes instead of using the key
+    #             unique_modes = df['TransitMode'].unique()
+    #             for mode in unique_modes:
+    #                 mode_df = df[df['TransitMode'] == mode].copy()
+    #                 dfs.append(mode_df)
+    #                 dicty[mode] = mode_df
+    #                 split_f.append([mode])
+    #         else:
+    #             # Original behavior for backward compatibility
+    #             dfs.append(df)
+    #             dicty[method] = df
+    #             split_f.append([method])
             
-        return CommuteData(dfs, dicty, split_f)
+    #     return CommuteData(dfs, dicty, split_f)
 
-    def filter_by_commute_time(self, df: pd.DataFrame, max_commute_time: int) -> Tuple[pd.DataFrame, int, int]:
+    def _unify_data(self, data_dict: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         """
-        Filters the DataFrame to include only employees with a current commute time
-        less than or equal to the specified maximum.
+        Consolidate multiple DataFrames into a single long-form DataFrame.
+        This handles both 'TransitMode' and backward-compatible structures.
         """
-        # Ensure 'value' column is numeric for filtering
-        df['value'] = pd.to_numeric(df['value'], errors='coerce')
+        all_dfs = []
+        for method, df in data_dict.items():
+            df_copy = df.copy()
+            
+            if 'TransitMode' in df_copy.columns:
+                # 'TransitMode' column already exists, use it
+                df_copy['Method'] = df_copy['TransitMode']
+            else:
+                # Add a new 'Method' column for backward compatibility
+                df_copy['Method'] = method
+                
+            all_dfs.append(df_copy)
+            
+        # Combine all data into one DataFrame
+        unified_df = pd.concat(all_dfs, ignore_index=True)
+        
+        # Transform the data to long-form for easier analysis
+        # 'Employee_ID' and 'Method' should be ID variables
+        id_vars = ['Employee_ID', 'Method']
+        
+        # Assuming other columns are the variables to be analyzed
+        var_cols = [col for col in unified_df.columns if col not in id_vars]
+        
+        # 'melt' the DataFrame to create a single column for variables and their values
+        long_df = unified_df.melt(id_vars=id_vars, value_vars=var_cols, var_name='variable', value_name='value')
+        
+        return long_df
 
-        # Get all unique employee IDs before filtering
-        all_employees = df['Employee_ID'].unique()
-        total_employees = len(all_employees)
-        
-        # Identify current commute times
-        current_commute_times = df[df['variable'] == 'CurrentCommute_Time']
-        
-        # Find employees whose current commute is within the max time
-        valid_employees = current_commute_times[
-            current_commute_times['value'] <= max_commute_time
+    def filter_by_commute_time(self, max_commute_time: int):
+        """
+        Apply a commute time filter across all transit methods.
+        Returns the filtered data and a summary of the results.
+        """
+        # Find all records related to commute time
+        commute_time_mask = self.data['variable'].str.contains('CurrentCommute_Time', na=False)
+        commute_time_data = self.data[commute_time_mask].copy()
+
+        # Convert the value column to numeric and filter for employees under the max time
+        commute_time_data['value_numeric'] = pd.to_numeric(commute_time_data['value'], errors='coerce')
+        valid_employees = commute_time_data[
+            (commute_time_data['value_numeric'] <= max_commute_time) &
+            (commute_time_data['value_numeric'].notna())
         ]['Employee_ID'].unique()
         
-        # Filter the full DataFrame to only include data for valid employees
-        filtered_df = df[df['Employee_ID'].isin(valid_employees)].copy()
-        
-        remaining_employees = len(valid_employees)
+        # Filter the unified data to keep only the valid employees
+        filtered_df = self.data[self.data['Employee_ID'].isin(valid_employees)].copy()
 
-        return filtered_df, total_employees, remaining_employees
+        # Calculate and return a summary of the results
+        results = {}
+        for method in self.data['Method'].unique():
+            original_method_data = self.data[self.data['Method'] == method]
+            filtered_method_data = filtered_df[filtered_df['Method'] == method]
+            
+            total_employees = original_method_data['Employee_ID'].nunique()
+            remaining_employees = filtered_method_data['Employee_ID'].nunique()
+            
+            results[method] = {
+                'total_employees': total_employees,
+                'remaining_employees': remaining_employees,
+                'filtered_out': total_employees - remaining_employees
+            }
+        
+        return filtered_df, results
+
+    # def filter_by_commute_time(self, df: pd.DataFrame, max_commute_time: int) -> Tuple[pd.DataFrame, int, int]:
+    #     """
+    #     Filters the DataFrame to include only employees with a current commute time
+    #     less than or equal to the specified maximum.
+    #     """
+    #     # Ensure 'value' column is numeric for filtering
+    #     df['value'] = pd.to_numeric(df['value'], errors='coerce')
+
+    #     # Get all unique employee IDs before filtering
+    #     all_employees = df['Employee_ID'].unique()
+    #     total_employees = len(all_employees)
+        
+    #     # Identify current commute times
+    #     current_commute_times = df[df['variable'] == 'CurrentCommute_Time']
+        
+    #     # Find employees whose current commute is within the max time
+    #     valid_employees = current_commute_times[
+    #         current_commute_times['value'] <= max_commute_time
+    #     ]['Employee_ID'].unique()
+        
+    #     # Filter the full DataFrame to only include data for valid employees
+    #     filtered_df = df[df['Employee_ID'].isin(valid_employees)].copy()
+        
+    #     remaining_employees = len(valid_employees)
+
+    #     return filtered_df, total_employees, remaining_employees
     
     @staticmethod
     def _commute_time_bucket(time: float) -> str:
