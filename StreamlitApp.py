@@ -129,8 +129,7 @@ def main():
                 st.session_state.results = {
                     'origins': origins,
                     'destinations': destinations,
-                    'data': combined_results,  # Keep original key name
-                    'method_transit': method_transit  # Store the selected method
+                    'data': combined_results  # Keep original key name
                 }
 
         except Exception as e:
@@ -167,11 +166,10 @@ def main():
         st.dataframe(filtered_df.head())
         
         # Include the method in the filename for clarity
-        method_suffix = st.session_state.results['method_transit']
         st.download_button(
             "Download Categorized Data",
             filtered_df.to_csv(index=False).encode('utf-8'),
-            f"CommuteAnalysis_{method_suffix}_{datetime.date.today().strftime('%Y%m%d')}.csv",
+            f"CommuteAnalysis_{method_transit}_{datetime.date.today().strftime('%Y%m%d')}.csv",
             "text/csv"
         )
 
